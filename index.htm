@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Matrix Federation</title>
+	<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+<!-- Optional theme -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    </head>
+
+    
+    <body>
+        <div class="container">
+		<div class="panel panel-default">
+		<div class="panel-heading">
+			<h1>.well-known file</h1>
+		</div>
+		<div id="well-known" class="panel-body">
+		</div>
+		<div class="panel-body">A missing .well-known file is not a problem, as you may be using a SRV record or your server_name may be the same as your matrix homeservers host, which do not require a .well-known entry to manage.</p>
+			<p> IF you are expecting a .well-known entry here, check if the content of the file is valid, and if the TLS certificate for your webserver hosting the file is valid. Note that intermediate certificates are required, and that many browsers ship intermediate certificates to ease adoption of TLS, but APIs and servers rely on the full certificate chain.)
+		</div>
+		</div>
+		<div id="checks-panel" class="panel panel-default">
+		<div class="panel-heading">
+			<h1>Server checks</h1>
+		</div>
+		<div id="checks" class="panel-body">
+		</div>
+		<div class="panel-body"></p>
+
+		</div>
+
+        </div>
+    
+    </body>
+
+<script>
+    let searchParams = new URLSearchParams(window.location.search);
+    let server_name = searchParams.get('server_name');
+    console.log("Checking federation tester for for "+server_name);
+    $.getJSON("https://matrix.org/federationtester/api/report?server_name="+server_name,
+        function(data, textStatus, jqXHR) {
+		var fail = false;
+		console.log(data);
+		is_broken = false;
+		$("#checks-panel").addClass('panel-info');
+		$.each(data.ConnectionReports, function (key, connectionReport) {
+			console.log("handling "+key);
+			if (!connectionReport.Info.WellKnownInUse) {
+				$("#well-known").append("<p>No valid .well-known for "+key+"</p>");
+			} else {
+				$("#well-known").append("<p>.well-known found for "+key+"</p>");
+			}
+			if (connectionReport.ValidCertificates) {
+				$("#checks").append("<p>Valid certificate for "+key+". Your server will be accessible via federation after 1.0 is deployed.</p>");
+			} else {
+				$("#checks").append("<p>Certificate not trusted for "+key+". There is a breaking change for federation to require valid TLS certificates for federation traffic. Please see the matrix.org/blog for more details. Without a change this server will not be accessible via federation after 1.0</p>");
+				fail = true;
+			}
+
+			if (connectionReport.Checks.AllChecksOK) {
+				$("#checks").append("<p>No other issues for "+key+"</p>");
+			}
+			else {
+
+				fail = true;
+			}
+
+			
+
+		});
+		if (fail) {
+	               $("#checks-panel").removeClass('panel-info');
+	               $("#checks-panel").addClass('panel-danger');
+		}
+		else {
+	               $("#checks-panel").removeClass('panel-info');
+	               $("#checks-panel").addClass('panel-success');
+		}
+
+
+    });
+
+</script>
+</html>
